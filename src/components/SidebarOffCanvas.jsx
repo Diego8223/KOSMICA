@@ -15,7 +15,7 @@ const SidebarOffCanvas = () => {
   const generateWhatsAppMessage = () => {
     let message = "Hola Isabel, saludos. Quiero este pedido:\n\n";
     cart.forEach((product) => {
-      const imageUrl = `${window.location.origin}/imgs-api/${product.id}.webp`;
+      const imageUrl = `${window.location.origin}/imgs-api/${product.id}.png`;
       message += `📌 Producto: ${product.title}\n`;
       message += `🔢 Cantidad: ${product.quantity}\n`;
       message += `💰 Precio: $${product.price}\n`;
