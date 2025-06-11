@@ -32,7 +32,7 @@ const SizeFilter = ({ products, totalFiltered }) => {
     <div className="mt-5 p-3 mb-3 circle">
       <LoadingBar color="#ff9c08" ref={ref} shadow={true} />
       <h6>
-        Talla disponibles
+        Productos Disponibles
         <span className="fw-bold float-end">({totalFiltered})</span>
       </h6>
       <div className="d-flex flex-wrap">
