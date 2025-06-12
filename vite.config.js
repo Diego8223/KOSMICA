@@ -5,6 +5,10 @@ export default defineConfig({
   plugins: [react()],
   build: {
     outDir: 'dist',
-    emptyOutDir: true
+    emptyOutDir: true,
+    minify: 'esbuild', // o 'terser' si necesitas más compresión
+    sourcemap: false,
+    cssCodeSplit: true,
+    target: 'es2017',
   }
-})
+});

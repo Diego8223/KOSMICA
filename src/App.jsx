@@ -1,87 +1,65 @@
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, lazy, useEffect, useMemo, useState } from "react";
 import useCartStore from "./store/cartStore";
 import useOffcanvasStore from "./store/offcanvasStore";
 import useTotalStore from "./store/totalProductStore";
 import useBalanceStore from "./store/balanceStore";
 import useSizeFilterStore from "./store/sizeFilterStore";
 
-import ProductsList from "./components/ProductsList";
-import Footer from "./components/Footer";
 import Nav from "./components/Nav";
-import SidebarOffCanvas from "./components/SidebarOffCanvas";
-import SizeFilter from "./components/SizeFilter";
-import useFetch from "./hooks/useFetch"; // Importar el custom hook
 import TitleTypeWriter from "./components/TitleTypeWriter";
-import SizeFilterSkeleton from "./components/SizeFilterSkeleton";
+import useFetch from "./hooks/useFetch";
+
+// 💤 Lazy load de componentes
+const ProductsList = lazy(() => import("./components/ProductsList"));
+const Footer = lazy(() => import("./components/Footer"));
+const SidebarOffCanvas = lazy(() => import("./components/SidebarOffCanvas"));
+const SizeFilter = lazy(() => import("./components/SizeFilter"));
+const SizeFilterSkeleton = lazy(() => import("./components/SizeFilterSkeleton"));
 
 const App = () => {
-  // Llama a `useCartStore` para acceder al estado del carrito y las funciones
   const { cart } = useCartStore();
   const { getTotalProducts } = useTotalStore();
   const { toggleBalanceo } = useBalanceStore();
   const { isVisible, toggleOffcanvas } = useOffcanvasStore();
   const { selectedSizes } = useSizeFilterStore();
 
-  // Usar el hook useFetch para obtener los productos
   const { data: products, loading, error } = useFetch("/json/products.json");
-
-  // Estado para simular carga mínima
   const [isSimulatedLoading, setIsSimulatedLoading] = useState(true);
 
-  // UseEffect para manejar el estado de balanceo y la carga mínima
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsSimulatedLoading(false); // Desactiva la carga simulada después de 3 segundos
-    }, 1000);
+    const timer = setTimeout(() => setIsSimulatedLoading(false), 1000);
 
     if (cart.length > 0) {
-      const totalProductsBalanceo = getTotalProducts(cart); // Calcula los productos únicos
-      // Abre el carrito solo si no está visible
-      if (!isVisible) {
-        toggleOffcanvas(true);
-      }
-
-      // Activa la animación si hay productos únicos
-      if (totalProductsBalanceo > 0) {
-        toggleBalanceo(true);
-      }
-
-      return () => clearTimeout(timer); // Limpiar el temporizador al desmontar el componente
+      const totalProductsBalanceo = getTotalProducts(cart);
+      if (!isVisible) toggleOffcanvas(true);
+      if (totalProductsBalanceo > 0) toggleBalanceo(true);
     }
 
-    return () => clearTimeout(timer); // Limpiar el temporizador al desmontar el componente
+    return () => clearTimeout(timer);
   }, [cart, getTotalProducts, toggleBalanceo, toggleOffcanvas]);
 
-  // Filtrar productos por talla seleccionada
   const filteredProducts = useMemo(() => {
-    if (!selectedSizes.length) return products; // Si no hay tallas seleccionadas, devolver todos los productos
-
-    return products.filter(
-      (product) =>
-        selectedSizes.some((size) => product.availableSizes.includes(size)) // Filtrar si el producto tiene alguna talla seleccionada
+    if (!selectedSizes.length) return products;
+    return products.filter(product =>
+      selectedSizes.some(size => product.availableSizes.includes(size))
     );
-  }, [selectedSizes, products]); // Dependemos tanto de `selectedSizes` como de `products`
+  }, [selectedSizes, products]);
 
-  // Obtener el total de productos filtrados usando useMemo
   const totalFiltered = useMemo(() => {
-    // Si no hay filtros aplicados, mostrar el total de productos
-    if (selectedSizes.length === 0) {
-      return products?.length || 0; // Devuelve 0 si no hay productos
-    }
-    // Si hay filtros, mostrar el total de productos filtrados
+    if (selectedSizes.length === 0) return products?.length || 0;
     return filteredProducts.length;
   }, [selectedSizes, filteredProducts, products]);
 
   return (
     <>
       <Nav />
-
       <div className="container mt-5 mb-5">
         <TitleTypeWriter />
-
         <div className="row">
           {loading || isSimulatedLoading ? (
-            <SizeFilterSkeleton />
+            <Suspense fallback={<div>Cargando filtros...</div>}>
+              <SizeFilterSkeleton />
+            </Suspense>
           ) : error ? (
             <div className="col-12">
               <h2 className="text-center text-danger">
@@ -90,13 +68,15 @@ const App = () => {
             </div>
           ) : filteredProducts.length > 0 ? (
             <>
-              {/* Columna del filtro */}
               <div className="col-md-2">
-                <SizeFilter products={products} totalFiltered={totalFiltered} />
+                <Suspense fallback={<div>Cargando filtro...</div>}>
+                  <SizeFilter products={products} totalFiltered={totalFiltered} />
+                </Suspense>
               </div>
-              {/* Columna de productos */}
               <div className="col-md-10">
-                <ProductsList products={filteredProducts} />
+                <Suspense fallback={<div>Cargando productos...</div>}>
+                  <ProductsList products={filteredProducts} />
+                </Suspense>
               </div>
             </>
           ) : (
@@ -107,10 +87,17 @@ const App = () => {
         </div>
       </div>
 
-      {/* Mostrar el SidebarOffCanvas, carrito de compras */}
-      {isVisible && <SidebarOffCanvas />}
+      {/* Sidebar del carrito */}
+      {isVisible && (
+        <Suspense fallback={<div>Cargando carrito...</div>}>
+          <SidebarOffCanvas />
+        </Suspense>
+      )}
 
-      <Footer />
+      {/* Footer */}
+      <Suspense fallback={<div>Cargando pie de página...</div>}>
+        <Footer />
+      </Suspense>
     </>
   );
 };
